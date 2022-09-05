@@ -43,7 +43,7 @@ jobs:
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     - name: Run terraform apply on push to main branch
-      run: terraform apply "tfplan" -auto-approve -input=false
+      run: terraform apply -auto-approve -input=false "tfplan"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'
