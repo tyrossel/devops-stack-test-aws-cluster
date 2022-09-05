@@ -37,7 +37,7 @@ jobs:
 
     - name: Run terraform apply on push to main branch
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -auto-approve -input=false
+      run: terraform destroy -auto-approve -input=false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'

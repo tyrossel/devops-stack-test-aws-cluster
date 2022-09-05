@@ -36,9 +36,8 @@ jobs:
       id: validate
       run: terraform validate -no-color
 
-    - name: Run terraform plan on PR
+    - name: Run terraform plan
       id: plan
-      if: github.event_name == 'pull_request'
       run: terraform plan -no-color -input=false
       continue-on-error: true # This is in order to continue even if there is an error so we can get the output
       env:
@@ -78,6 +77,8 @@ jobs:
             body: output
           })
 
+    # This step is needed so the workflow appears as unsuccessful in the event of a failed terraform plan
+    # We only need this because we used `continue-on-error: true` on the `terraform plan` step
     - name: Check that the plan was successful otherwise throw an error and quit
       if: steps.plan.outcome == 'failure'
       run: exit 1

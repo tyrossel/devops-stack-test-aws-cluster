@@ -32,11 +32,9 @@ jobs:
       id: validate
       run: terraform validate -no-color
 
-    - name: Run terraform plan on PR
+    - name: Run terraform plan
       id: plan
-      if: github.event_name == 'pull_request'
-      run: terraform plan -no-color -input=false
-      continue-on-error: true # This is in order to continue even if there is an error so we can get the output
+      run: terraform plan -no-color -input=false -out tfplan
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'
@@ -44,13 +42,8 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
-    - name: Check that the plan was successful otherwise throw an error and quit
-      if: steps.plan.outcome == 'failure'
-      run: exit 1
-
     - name: Run terraform apply on push to main branch
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -auto-approve -input=false
+      run: terraform apply "tfplan" -auto-approve -input=false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'
