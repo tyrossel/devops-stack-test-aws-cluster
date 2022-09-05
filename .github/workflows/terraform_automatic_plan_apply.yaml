@@ -42,7 +42,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
-    - name: Run terraform apply on push to main branch
+    - name: Run terraform apply
       run: terraform apply -auto-approve -input=false "tfplan"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
