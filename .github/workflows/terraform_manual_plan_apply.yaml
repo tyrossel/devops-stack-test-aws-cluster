@@ -1,10 +1,8 @@
 ---
-name: "Scheduled/Manual terraform apply"
+name: "Manual terraform apply"
 
 on:
   workflow_dispatch:
-  schedule:
-  - cron: "30 7 * * 2-6" # Run the terraform destroy every workday at 7h30
 
 jobs:
   terraform-manual-apply:
