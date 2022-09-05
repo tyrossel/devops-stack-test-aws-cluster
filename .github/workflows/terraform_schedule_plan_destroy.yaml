@@ -20,7 +20,7 @@ jobs:
 
     - name: Run terraform init
       id: init
-      run: terraform init
+      run: terraform init -no-color
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'
@@ -29,7 +29,12 @@ jobs:
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
     
     - name: Delete some resources on the state file
-      run: terraform state rm $(terraform state list | grep 'argocd_application\|argocd_project\|kubernetes_\|helm_')
+      run: |
+        terraform state list | grep 'argocd_application\|argocd_project\|kubernetes_\|helm_' > state_to_delete
+        while read line; do
+          terraform state rm ${line}
+        done < state_to_delete
+        echo "Finished the state file cleanup before the destroy"
       continue-on-error: true # This is to avoid failed workflows and the consequent noise when the scheduled destroy runs on the days we have not created the test deployment
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -38,8 +43,8 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
-    - name: Run terraform apply
-      run: terraform destroy -auto-approve -input=false
+    - name: Run terraform destroy
+      run: terraform destroy -no-color -auto-approve -input=false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'

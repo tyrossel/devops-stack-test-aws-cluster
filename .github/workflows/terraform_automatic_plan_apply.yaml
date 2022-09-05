@@ -20,7 +20,7 @@ jobs:
 
     - name: Run terraform init
       id: init
-      run: terraform init
+      run: terraform init -no-color
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: '.'
