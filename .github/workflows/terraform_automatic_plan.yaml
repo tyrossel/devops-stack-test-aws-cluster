@@ -7,7 +7,7 @@ on:
     - main
 
 jobs:
-  terraform:
+  terraform-plan:
     name: "terraform plan"
     runs-on: ubuntu-latest
     steps:

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  terraform:
+  terraform-manual-apply:
     name: "terraform apply"
     runs-on: ubuntu-latest
     steps:

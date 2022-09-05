@@ -1,11 +1,11 @@
 ---
-name: "Manual terraform destroy`"
+name: "Manual terraform destroy"
 
 on:
   workflow_dispatch:
 
 jobs:
-  terraform:
+  terraform-manual-destroy:
     name: "terraform destroy"
     runs-on: ubuntu-latest
     steps:
