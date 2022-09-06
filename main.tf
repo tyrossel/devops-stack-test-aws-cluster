@@ -165,7 +165,6 @@ module "oidc" {
 
 module "thanos" {
   source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks"
-  # source = "../../../devops-stack-module-thanos/eks"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -181,9 +180,11 @@ module "thanos" {
   depends_on = [module.argocd_bootstrap]
 }
 
+# TODO Discuss renaming the module because we have the monitoring stack mostly separated through multiple modules
 module "monitoring" {
   # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks"
   source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=chart_upgrade"
+  # TODO Remove the ref chart_upgrade
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -219,7 +220,9 @@ module "loki-stack" {
 }
 
 module "grafana" {
+  # source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git"
   source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=troubleshoot_deployment"
+  # TODO Remove the ref troubleshoot_deployment
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -281,52 +284,10 @@ module "argocd" {
   depends_on = [module.cert-manager, module.monitoring, module.grafana]
 }
 
-# resource "argocd_application" "metrics-server" {
-#   metadata {
-#     name      = "metrics-server"
-#     namespace = local.argocd_namespace
-#   }
-
-#   wait = true
-
-#   spec {
-#     # TODO Discuss on the next weekly if we shouldn't put this on its own 
-#     # Argo CD project like all the other intrinsic cluster applications 
-#     # we deploy. To do that we either add an argocd_project resource or 
-#     # I propose we create a module not for metrics-server itself but to deploy 
-#     # applications that do not need an application set like the other module 
-#     # below.
-#     project = "default"
-
-#     source {
-#       repo_url        = "https://github.com/kubernetes-sigs/metrics-server.git/"
-#       path            = "charts/metrics-server"
-#       target_revision = "master"
-#     }
-
-#     destination {
-#       server    = "https://kubernetes.default.svc"
-#       namespace = "kube-system"
-#     }
-
-#     sync_policy {
-#       automated = {
-#         allow_empty = false
-#         self_heal   = true
-#         prune       = true
-#       }
-#       sync_options = [
-#         "CreateNamespace=true"
-#       ]
-#     }
-#   }
-
-#   depends_on = [module.argocd]
-
-# }
-
 module "metrics_server" {
+  # source = "git::https://github.com/camptocamp/devops-stack-module-application.git"
   source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=initial_development"
+  # TODO Remove ref to initial_deployment
 
   name             = "metrics-server"
   argocd_namespace = local.argocd_namespace
@@ -339,39 +300,10 @@ module "metrics_server" {
   depends_on = [module.argocd]
 }
 
-module "argocd_guestbook" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=initial_development"
-
-  name             = "argocd-guestbook"
-  argocd_namespace = local.argocd_namespace
-
-  source_repo            = "https://github.com/argoproj/argocd-example-apps"
-  source_repo_path       = "helm-guestbook"
-  source_target_revision = "master"
-
-  project_cluster_resource_whitelist = [
-    {
-      group = "*"
-      kind  = "Namespace"
-    },
-  ]
-
-  project_namespace_resource_whitelist = [
-    {
-      group = "apps"
-      kind  = "Deployment"
-    },
-    {
-      group = "*"
-      kind  = "Service"
-    },
-  ]
-
-  depends_on = [module.argocd]
-}
-
 module "helloworld_apps" {
+  # source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git"
   source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=applicationset_modifs"
+  # TODO Remove ref to applicationset_modifs
 
   depends_on = [module.argocd]
 

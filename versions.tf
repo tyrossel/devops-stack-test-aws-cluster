@@ -13,7 +13,3 @@ terraform {
     }
   }
 }
-
-# 2 eme solution modifier le code source du provider pour attendre la creation de la resource AppProject
-
-# 3 eme solution utiliser la boucle de app of apps
