@@ -180,8 +180,7 @@ module "thanos" {
   depends_on = [module.argocd_bootstrap]
 }
 
-# TODO Discuss renaming the module because we have the monitoring stack mostly separated through multiple modules
-module "monitoring" {
+module "prometheus-stack" {
   source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks"
 
   cluster_name     = module.eks.cluster_name
@@ -214,13 +213,11 @@ module "loki-stack" {
 
   cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
 
-  depends_on = [module.monitoring]
+  depends_on = [module.prometheus-stack]
 }
 
 module "grafana" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git"
-  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=troubleshoot_deployment"
-  # TODO Remove the ref troubleshoot_deployment
+  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -230,7 +227,7 @@ module "grafana" {
     oidc = module.oidc.oidc
   }
 
-  depends_on = [module.monitoring, module.loki-stack]
+  depends_on = [module.prometheus-stack, module.loki-stack]
 }
 
 module "cert-manager" {
@@ -242,7 +239,7 @@ module "cert-manager" {
 
   cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
 
-  depends_on = [module.monitoring]
+  depends_on = [module.prometheus-stack]
 }
 
 module "argocd" {
@@ -279,13 +276,11 @@ module "argocd" {
   #    revision = local.target_revision
   #  }}
 
-  depends_on = [module.cert-manager, module.monitoring, module.grafana]
+  depends_on = [module.cert-manager, module.prometheus-stack, module.grafana]
 }
 
 module "metrics_server" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-application.git"
-  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=initial_development"
-  # TODO Remove ref to initial_deployment
+  source = "git::https://github.com/camptocamp/devops-stack-module-application.git"
 
   name             = "metrics-server"
   argocd_namespace = local.argocd_namespace
@@ -349,10 +344,10 @@ module "helloworld_apps" {
               domain: "${module.eks.base_domain}"
             apps:
               traefik_dashboard: false # TODO Add variable when we configure the Traefik Dashboard
-              grafana: ${module.grafana.grafana_enabled || module.monitoring.grafana_enabled}
-              prometheus: ${module.monitoring.prometheus_enabled}
+              grafana: ${module.grafana.grafana_enabled || module.prometheus-stack.grafana_enabled}
+              prometheus: ${module.prometheus-stack.prometheus_enabled}
               thanos: ${module.thanos.thanos_enabled}
-              alertmanager: ${module.monitoring.alertmanager_enabled}
+              alertmanager: ${module.prometheus-stack.alertmanager_enabled}
           EOT
         }
       }
