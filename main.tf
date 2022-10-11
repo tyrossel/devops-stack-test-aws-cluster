@@ -191,27 +191,31 @@ module "prometheus-stack" {
   metrics_archives = module.thanos.metrics_archives
 
   helm_values = [{
-    additionalScrapeConfigs = [
-      {
-        job_name = "relabel_test"
-        metric_relabel_configs = [
+    prometheus = {
+      prometheusSpec = {
+        additionalScrapeConfigs = [
           {
-            source_labels = ["namespace"]
-            regex         = "helloworld"
-            target_label  = "team"
-            replacement   = "t5"
-            action        = "replace"
-          },
-          {
-            source_labels = ["namespace"]
-            regex         = "helloworld"
-            target_label  = "environment"
-            replacement   = "prod"
-            action        = "replace"
+            job_name = "relabel_test"
+            relabel_configs = [
+              {
+                source_labels = ["namespace"]
+                regex         = "helloworld"
+                target_label  = "team"
+                replacement   = "t5"
+                action        = "replace"
+              },
+              {
+                source_labels = ["namespace"]
+                regex         = "helloworld"
+                target_label  = "environment"
+                replacement   = "prod"
+                action        = "replace"
+              }
+            ]
           }
         ]
       }
-    ]
+    }
   }]
 
   prometheus = {
