@@ -156,9 +156,7 @@ module "oidc" {
 }
 
 module "thanos" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks"
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=chart-upgrade"
-  # TODO Remove ref to chart-upgrade
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-rc2"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -275,7 +273,7 @@ module "argocd" {
 }
 
 module "metrics_server" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-application.git"
+  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.0.0"
 
   name             = "metrics-server"
   argocd_namespace = local.argocd_namespace
