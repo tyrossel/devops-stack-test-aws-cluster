@@ -156,7 +156,9 @@ module "oidc" {
 }
 
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=chart-upgrade"
+  # TODO Remove ref to chart-upgrade
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
