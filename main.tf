@@ -156,7 +156,7 @@ module "oidc" {
 }
 
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-rc2"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-alpha.4"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -273,23 +273,21 @@ module "argocd" {
 }
 
 module "metrics_server" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.0.1"
 
   name             = "metrics-server"
   argocd_namespace = local.argocd_namespace
 
   source_repo            = "https://github.com/kubernetes-sigs/metrics-server.git"
   source_repo_path       = "charts/metrics-server"
-  source_target_revision = "master"
+  source_target_revision = "metrics-server-helm-chart-3.8.2"
   destination_namespace  = "kube-system"
 
   depends_on = [module.argocd]
 }
 
 module "helloworld_apps" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git"
-  source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=applicationset_modifs"
-  # TODO Remove ref to applicationset_modifs
+  source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=v1.0.0"
 
   depends_on = [module.argocd]
 
