@@ -334,11 +334,11 @@ module "helloworld_apps" {
               name: "${module.eks.cluster_name}"
               domain: "${module.eks.base_domain}"
             apps:
-              traefik_dashboard: false # TODO Add variable when we configure the Traefik Dashboard
-              grafana: ${module.grafana.grafana_enabled || module.prometheus-stack.grafana_enabled}
-              prometheus: ${module.prometheus-stack.prometheus_enabled}
-              thanos: ${module.thanos.thanos_enabled}
-              alertmanager: ${module.prometheus-stack.alertmanager_enabled}
+              traefik_dashboard: false
+              grafana: true
+              prometheus: true
+              thanos: true
+              alertmanager: true
           EOT
         }
       }
@@ -361,3 +361,72 @@ module "helloworld_apps" {
     }
   }
 }
+
+# module "private_apps" {
+#   source = "../devops-stack-module-applicationset"
+
+#   depends_on = [module.argocd]
+
+#   name                   = "private-apps"
+#   argocd_namespace       = local.argocd_namespace
+#   project_dest_namespace = "*"
+#   project_source_repo    = "https://github.com/lentidas/devops-stack-private-chart.git"
+#   source_credentials_ssh_key = file("${path.module}/id_ed25519_test")
+
+#   generators = [
+#     {
+#       git = {
+#         repoURL  = "https://github.com/lentidas/devops-stack-private-chart.git"
+#         revision = "main"
+
+#         directories = [
+#           {
+#             path = "apps/*"
+#           }
+#         ]
+#       }
+#     }
+#   ]
+#   template = {
+#     metadata = {
+#       name = "{{path.basename}}"
+#     }
+
+#     spec = {
+#       project = "private-apps"
+
+#       source = {
+#         repoURL        = "https://github.com/lentidas/devops-stack-private-chart.git"
+#         targetRevision = "main"
+#         path           = "{{path}}"
+
+#         helm = {
+#           valueFiles = []
+#           # The following value defines this global variables that will be available to all apps in apps/*
+#           # These are needed to generate the ingresses containing the name and base domain of the cluster.
+#           values = <<-EOT
+#             cluster:
+#               name: "${module.eks.cluster_name}"
+#               domain: "${module.eks.base_domain}"
+#           EOT
+#         }
+#       }
+
+#       destination = {
+#         name      = "in-cluster"
+#         namespace = "{{path.basename}}"
+#       }
+
+#       syncPolicy = {
+#         automated = {
+#           allowEmpty = false
+#           selfHeal   = true
+#           prune      = true
+#         }
+#         syncOptions = [
+#           "CreateNamespace=true"
+#         ]
+#       }
+#     }
+#   }
+# }
