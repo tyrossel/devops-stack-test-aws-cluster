@@ -108,7 +108,7 @@ provider "helm" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v1.0.0-alpha.1"
 
   cluster_name   = module.eks.cluster_name
   base_domain    = module.eks.base_domain
@@ -133,7 +133,7 @@ provider "argocd" {
 }
 
 module "ingress" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0-alpha.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -143,7 +143,7 @@ module "ingress" {
 }
 
 module "oidc" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git"
+  source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=v1.0.0-alpha.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -156,31 +156,62 @@ module "oidc" {
 }
 
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-alpha.4"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-alpha.4"
+  source = "../devops-stack-module-thanos"
+  # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
-  cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
-
   thanos = {
     oidc = module.oidc.oidc
+    metrics_storage_configuration = {
+      type = "S3"
+      config = {
+        bucket             = "${aws_s3_bucket.thanos_metrics_store.id}"
+        endpoint           = "s3.amazonaws.com" # Value explicitly specified by Thanos docs for Amazon S3 buckets
+        region             = "${aws_s3_bucket.thanos_metrics_store.region}"
+        signature_version2 = false
+        insecure           = false
+      }
+    }
+    # The IAM role will be used as an annotation on the ServiceAccounts of the compactor, bucketweb and storegateway
+    # components, giving them access to the S3 bucket.
+    metrics_storage_iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
   }
 
   depends_on = [module.argocd_bootstrap]
 }
 
 module "prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
-  metrics_archives = module.thanos.metrics_archives
+  # TODO Properly document how to pass the values here for metrics_archives
+  # Bucket configuration for `thanos-sidecar` inside the `kube-prometheus-stack`.
+  metrics_archives = {
+    # This is set as true, because if we call this module it forcefully
+    # means Thanos is activated. This variable is only needed to create
+    # the Kubernetes secret with the bucket information in the module
+    # kube-prometheus-stack.
+    thanos_enabled = true
+
+    bucket_config = {
+      type = "s3"
+      config = {
+        bucket   = "${aws_s3_bucket.thanos_metrics_store.id}"
+        endpoint = "s3.${aws_s3_bucket.thanos_metrics_store.region}.amazonaws.com"
+      }
+    }
+
+    iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
+  }
 
   prometheus = {
     oidc = module.oidc.oidc
@@ -197,7 +228,7 @@ module "prometheus-stack" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks?ref=v1.0.0-alpha.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -209,7 +240,7 @@ module "loki-stack" {
 }
 
 module "grafana" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git"
+  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=v1.0.0-alpha.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -224,7 +255,7 @@ module "grafana" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.0-alpha.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -236,7 +267,7 @@ module "cert-manager" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v1.0.0-alpha.1"
 
   cluster_name = module.eks.cluster_name
   oidc = {
@@ -273,7 +304,7 @@ module "argocd" {
 }
 
 module "metrics_server" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.0.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.1.0"
 
   name             = "metrics-server"
   argocd_namespace = local.argocd_namespace
@@ -287,16 +318,14 @@ module "metrics_server" {
 }
 
 module "helloworld_apps" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=v1.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=v1.1.0"
 
   depends_on = [module.argocd]
 
   name                   = "helloworld-apps"
   argocd_namespace       = local.argocd_namespace
   project_dest_namespace = "*"
-  project_source_repos = [
-    "https://github.com/camptocamp/devops-stack-helloworld-templates.git",
-  ]
+  project_source_repo    = "https://github.com/camptocamp/devops-stack-helloworld-templates.git"
 
   generators = [
     {
