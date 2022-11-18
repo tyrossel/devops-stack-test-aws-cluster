@@ -156,8 +156,8 @@ module "oidc" {
 }
 
 module "thanos" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-alpha.4"
-  source = "../devops-stack-module-thanos"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=v1.0.0-alpha.4"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=bucket_credentials"
   # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
