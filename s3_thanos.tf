@@ -22,7 +22,7 @@ module "iam_assumable_role_thanos" {
   role_name                  = format("thanos-s3-role-%s", module.eks.cluster_name)
   provider_url               = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
   role_policy_arns           = [aws_iam_policy.thanos_s3_policy.arn]
-  
+
   # List of ServiceAccounts that have permission to attach to this IAM role
   oidc_fully_qualified_subjects = [
     "system:serviceaccount:thanos:thanos-bucketweb",
