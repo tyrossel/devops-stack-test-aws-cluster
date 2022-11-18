@@ -9,6 +9,12 @@ on:
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
+    env:
+      TF_ACTION_WORKING_DIR: .
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
     steps:
 
     - name: "Checkout the repository"
@@ -24,12 +30,6 @@ jobs:
     - name: "Run terraform init"
       id: init
       run: "terraform init -no-color"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_ACTION_WORKING_DIR: .
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
     
     - name: "Run terraform validate"
       id: validate
@@ -39,12 +39,6 @@ jobs:
       id: plan
       run: "terraform plan -no-color -input=false"
       continue-on-error: true # This is in order to continue even if there is an error so we can get the output
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_ACTION_WORKING_DIR: .
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     - name: "Add a comment to the PR with the result of the previous steps"
       uses: actions/github-script@v6
