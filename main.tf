@@ -157,7 +157,8 @@ module "oidc" {
 
 module "thanos" {
   # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=v1.0.0-alpha.4"
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=bucket_credentials"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=bucket_credentials_v2"
+  # source = "../devops-stack-module-thanos/eks"
   # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
@@ -166,20 +167,12 @@ module "thanos" {
   cluster_issuer   = local.cluster_issuer
 
   thanos = {
-    oidc = module.oidc.oidc
-    metrics_storage_configuration = {
-      type = "S3"
-      config = {
-        bucket             = "${aws_s3_bucket.thanos_metrics_store.id}"
-        endpoint           = "s3.amazonaws.com" # Value explicitly specified by Thanos docs for Amazon S3 buckets
-        region             = "${aws_s3_bucket.thanos_metrics_store.region}"
-        signature_version2 = false
-        insecure           = false
-      }
+    metrics_storage = {
+      bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
+      region       = aws_s3_bucket.thanos_metrics_storage.region
+      iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
     }
-    # The IAM role will be used as an annotation on the ServiceAccounts of the compactor, bucketweb and storegateway
-    # components, giving them access to the S3 bucket.
-    metrics_storage_iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
+    oidc = module.oidc.oidc
   }
 
   depends_on = [module.argocd_bootstrap]
@@ -205,8 +198,8 @@ module "prometheus-stack" {
     bucket_config = {
       type = "s3"
       config = {
-        bucket   = "${aws_s3_bucket.thanos_metrics_store.id}"
-        endpoint = "s3.${aws_s3_bucket.thanos_metrics_store.region}.amazonaws.com"
+        bucket   = "${aws_s3_bucket.thanos_metrics_storage.id}"
+        endpoint = "s3.${aws_s3_bucket.thanos_metrics_storage.region}.amazonaws.com"
       }
     }
 
@@ -228,13 +221,22 @@ module "prometheus-stack" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks?ref=v1.0.0-alpha.1"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks?ref=bucket_credentials"
+  # source = "../devops-stack-module-loki-stack/eks"
+  # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
   base_domain      = module.eks.base_domain
 
-  cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
+  loki = {
+    log_storage = {
+      bucket_id    = aws_s3_bucket.loki_log_storage.id
+      region       = aws_s3_bucket.loki_log_storage.region
+      iam_role_arn = module.iam_assumable_role_loki.iam_role_arn
+    }
+  }
 
   depends_on = [module.prometheus-stack]
 }

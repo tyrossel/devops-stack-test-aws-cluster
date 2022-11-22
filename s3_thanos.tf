@@ -1,18 +1,13 @@
-# TODO Verify if we really need this data source
-data "aws_region" "current" {}
-
-resource "aws_s3_bucket" "thanos_metrics_store" {
-  bucket = format("thanos-metrics-store-%s", module.eks.cluster_name)
-  # TODO Also add name to Loki S3 bucket in its module
+resource "aws_s3_bucket" "thanos_metrics_storage" {
+  bucket = format("thanos-metrics-storage-%s", module.eks.cluster_name)
 
   force_destroy = true
 
   tags = {
-    Name        = "Thanos Metrics Store"
-    Environment = module.eks.cluster_name
+    Name    = "Thanos metrics storage"
+    Cluster = module.eks.cluster_name
   }
 }
-
 
 module "iam_assumable_role_thanos" {
   source                     = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
@@ -34,7 +29,7 @@ module "iam_assumable_role_thanos" {
 }
 
 resource "aws_iam_policy" "thanos_s3_policy" {
-  name_prefix = "thanos-s3-" # TODO do something similar for Loki S3 configuration
+  name_prefix = "thanos-s3-"
   description = "Thanos IAM policy for cluster ${module.eks.cluster_name}"
   policy      = data.aws_iam_policy_document.thanos_s3_policy.json
 }
@@ -49,8 +44,8 @@ data "aws_iam_policy_document" "thanos_s3_policy" {
     ]
 
     resources = [
-      aws_s3_bucket.thanos_metrics_store.arn,
-      format("%s/*", aws_s3_bucket.thanos_metrics_store.arn),
+      aws_s3_bucket.thanos_metrics_storage.arn,
+      format("%s/*", aws_s3_bucket.thanos_metrics_storage.arn),
     ]
 
     effect = "Allow"
