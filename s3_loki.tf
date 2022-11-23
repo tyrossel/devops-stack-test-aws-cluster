@@ -1,10 +1,10 @@
-resource "aws_s3_bucket" "loki_log_storage" {
-  bucket = format("loki-log-storage-%s", module.eks.cluster_name)
+resource "aws_s3_bucket" "loki_logs_storage" {
+  bucket = format("loki-logs-storage-%s", module.eks.cluster_name)
 
   force_destroy = true
 
   tags = {
-    Name    = "Loki log storage"
+    Name    = "Loki logs storage"
     Cluster = module.eks.cluster_name
   }
 }
@@ -39,8 +39,8 @@ data "aws_iam_policy_document" "loki_s3_policy" {
     ]
 
     resources = [
-      aws_s3_bucket.loki_log_storage.arn,
-      format("%s/*", aws_s3_bucket.loki_log_storage.arn),
+      aws_s3_bucket.loki_logs_storage.arn,
+      format("%s/*", aws_s3_bucket.loki_logs_storage.arn),
     ]
 
     effect = "Allow"

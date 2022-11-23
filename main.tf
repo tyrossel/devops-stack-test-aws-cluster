@@ -157,7 +157,7 @@ module "oidc" {
 
 module "thanos" {
   # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=v1.0.0-alpha.4"
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=bucket_credentials_v2"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=bucket_credentials_v2"
   # source = "../devops-stack-module-thanos/eks"
   # TODO Change source back to the repository
 
@@ -166,12 +166,12 @@ module "thanos" {
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
+  metrics_storage = {
+    bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
+    region       = aws_s3_bucket.thanos_metrics_storage.region
+    iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
+  }
   thanos = {
-    metrics_storage = {
-      bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
-      region       = aws_s3_bucket.thanos_metrics_storage.region
-      iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
-    }
     oidc = module.oidc.oidc
   }
 
@@ -179,30 +179,19 @@ module "thanos" {
 }
 
 module "prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.1"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=variable_revamp"
+  # source = "../devops-stack-module-kube-prometheus-stack/eks"
+  # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
-  # TODO Properly document how to pass the values here for metrics_archives
-  # Bucket configuration for `thanos-sidecar` inside the `kube-prometheus-stack`.
-  metrics_archives = {
-    # This is set as true, because if we call this module it forcefully
-    # means Thanos is activated. This variable is only needed to create
-    # the Kubernetes secret with the bucket information in the module
-    # kube-prometheus-stack.
-    thanos_enabled = true
-
-    bucket_config = {
-      type = "s3"
-      config = {
-        bucket   = "${aws_s3_bucket.thanos_metrics_storage.id}"
-        endpoint = "s3.${aws_s3_bucket.thanos_metrics_storage.region}.amazonaws.com"
-      }
-    }
-
+  metrics_storage = {
+    bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
+    region       = aws_s3_bucket.thanos_metrics_storage.region
     iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
   }
 
@@ -230,12 +219,10 @@ module "loki-stack" {
   argocd_namespace = local.argocd_namespace
   base_domain      = module.eks.base_domain
 
-  loki = {
-    log_storage = {
-      bucket_id    = aws_s3_bucket.loki_log_storage.id
-      region       = aws_s3_bucket.loki_log_storage.region
-      iam_role_arn = module.iam_assumable_role_loki.iam_role_arn
-    }
+  logs_storage = {
+    bucket_id    = aws_s3_bucket.loki_logs_storage.id
+    region       = aws_s3_bucket.loki_logs_storage.region
+    iam_role_arn = module.iam_assumable_role_loki.iam_role_arn
   }
 
   depends_on = [module.prometheus-stack]
