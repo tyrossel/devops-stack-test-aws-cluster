@@ -133,7 +133,7 @@ provider "argocd" {
 }
 
 module "ingress" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0-alpha.4"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -158,7 +158,6 @@ module "oidc" {
 module "thanos" {
   # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git?ref=v1.0.0-alpha.4"
   source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=bucket_credentials_v2"
-  # source = "../devops-stack-module-thanos/eks"
   # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
@@ -181,7 +180,6 @@ module "thanos" {
 module "prometheus-stack" {
   # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.1"
   source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=variable_revamp"
-  # source = "../devops-stack-module-kube-prometheus-stack/eks"
   # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
@@ -190,6 +188,7 @@ module "prometheus-stack" {
   cluster_issuer   = local.cluster_issuer
 
   metrics_storage = {
+    enabled      = true
     bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
     region       = aws_s3_bucket.thanos_metrics_storage.region
     iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
@@ -212,7 +211,6 @@ module "prometheus-stack" {
 module "loki-stack" {
   # source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks?ref=v1.0.0-alpha.1"
   source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//eks?ref=bucket_credentials"
-  # source = "../devops-stack-module-loki-stack/eks"
   # TODO Change source back to the repository
 
   cluster_name     = module.eks.cluster_name
@@ -244,7 +242,7 @@ module "grafana" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.0-alpha.2"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = local.argocd_namespace
@@ -351,6 +349,7 @@ module "helloworld_apps" {
             cluster:
               name: "${module.eks.cluster_name}"
               domain: "${module.eks.base_domain}"
+              issuer: "${local.cluster_issuer}"
             apps:
               traefik_dashboard: false
               grafana: true
