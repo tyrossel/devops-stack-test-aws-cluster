@@ -215,7 +215,7 @@ module "argocd" {
   base_domain    = module.eks.base_domain
   cluster_issuer = local.cluster_issuer
 
-  admin_enabled            = "true" # honors bootstrap's argocd-initial-admin-secret
+  admin_enabled            = "true"
   namespace                = module.argocd_bootstrap.argocd_namespace
   accounts_pipeline_tokens = module.argocd_bootstrap.argocd_accounts_pipeline_tokens
   server_secretkey         = module.argocd_bootstrap.argocd_server_secretkey
@@ -237,9 +237,8 @@ module "argocd" {
 
   helm_values = [{
     argo-cd = {
-      config = {
+      configs = {
         rbac = {
-          "scopes"     = "[groups]"
           "policy.csv" = <<-EOT
             g, pipeline, role:admin
             g, devops-stack-admins, role:admin
