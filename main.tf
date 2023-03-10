@@ -2,12 +2,12 @@ data "aws_availability_zones" "available" {}
 
 module "vpc" {
   source               = "terraform-aws-modules/vpc/aws"
-  version              = "3.14.0"
+  version              = "~> 3.0"
   name                 = module.eks.cluster_name
-  cidr                 = "10.56.0.0/16"
+  cidr                 = local.vpc_cidr
   azs                  = data.aws_availability_zones.available.names
-  private_subnets      = ["10.56.1.0/24", "10.56.2.0/24", "10.56.3.0/24"]
-  public_subnets       = ["10.56.4.0/24", "10.56.5.0/24", "10.56.6.0/24"]
+  private_subnets      = local.vpc_private_subnets
+  public_subnets       = local.vpc_public_subnets
   enable_nat_gateway   = true
   create_igw           = true
   enable_dns_hostnames = true
@@ -23,54 +23,12 @@ module "vpc" {
   }
 }
 
-resource "aws_cognito_user_pool" "pool" {
-  name = module.eks.cluster_name
-}
-
-resource "aws_cognito_user_pool_domain" "pool_domain" {
-  domain       = module.eks.cluster_name
-  user_pool_id = aws_cognito_user_pool.pool.id
-}
-
-resource "aws_cognito_user_group" "argocd_admin_group" {
-  name         = "argocd-admin"
-  user_pool_id = aws_cognito_user_pool.pool.id
-  description  = "Users with admin access to Argo CD"
-}
-
-/* Available only in provider hashicorp/aws >= v4.0.0
-resource "random_string" "admin_password" {
-  length  = 25
-  special = false
-} # TODO create an output for this password
-
-resource "aws_cognito_user" "admin" {
-  user_pool_id = aws_cognito_user_pool.admin.id
-  username = admin
-  password = random_string.admin_password.result
-
-  message_action = SUPRESS # Do not send welcome message since password is hardcoded and email is non-existant
-
-  attributes = {
-    email = "admin@example.org"
-    email_verified = true
-    terraform = true
-  }
-}
-
-resource "aws_cognito_user_in_group" "add_admin_argocd_admin" {
-  user_pool_id = aws_cognito_user_pool.admin.id
-  group_name   = aws_cognito_user_group.argocd_admin_group.name
-  username     = aws_cognito_user.admin.username
-}
-*/
-
 module "eks" {
-  source = "git::https://github.com/camptocamp/devops-stack.git//modules/eks/aws?ref=v1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-eks?ref=v1.0.0-alpha.2"
 
-  cluster_name = "gh-v1-cluster"
-  base_domain  = "is-sandbox.camptocamp.com"
-  # cluster_version = "1.22"
+  cluster_name       = local.cluster_name
+  kubernetes_version = local.cluster_version
+  base_domain        = local.base_domain
 
   vpc_id         = module.vpc.vpc_id
   vpc_cidr_block = module.vpc.vpc_cidr_block
@@ -93,6 +51,25 @@ module "eks" {
   create_public_nlb = true
 }
 
+module "oidc" {
+  # source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=fix_and_improvements"
+
+  cluster_name = module.eks.cluster_name
+  base_domain  = module.eks.base_domain
+
+  create_pool = true
+
+  user_map = {
+    gheleno = {
+      username    = "gheleno"
+      email       = "goncalo.heleno@camptocamp.com"
+      given_name  = "Gonçalo"
+      family_name = "Heleno"
+    }
+  }
+}
+
 provider "kubernetes" {
   host                   = module.eks.kubernetes_host
   cluster_ca_certificate = module.eks.kubernetes_cluster_ca_certificate
@@ -108,22 +85,18 @@ provider "helm" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v1.0.0-alpha.1"
-
-  cluster_name   = module.eks.cluster_name
-  base_domain    = module.eks.base_domain
-  cluster_issuer = local.cluster_issuer
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v1.0.0-alpha.7"
 
   depends_on = [module.eks]
 }
 
 provider "argocd" {
-  server_addr                 = "some.stupid.name.that.doesnt.exist"
+  server_addr                 = "127.0.0.1:8080"
   auth_token                  = module.argocd_bootstrap.argocd_auth_token
   insecure                    = true
   plain_text                  = true
   port_forward                = true
-  port_forward_with_namespace = local.argocd_namespace
+  port_forward_with_namespace = module.argocd_bootstrap.argocd_namespace
 
   kubernetes {
     host                   = module.eks.kubernetes_host
@@ -133,33 +106,20 @@ provider "argocd" {
 }
 
 module "ingress" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0-alpha.5"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0-alpha.8"
 
   cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
   base_domain      = module.eks.base_domain
 
   depends_on = [module.argocd_bootstrap]
 }
 
-module "oidc" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=v1.0.0-alpha.1"
-
-  cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
-  base_domain      = module.eks.base_domain
-
-  cognito_user_pool_id     = aws_cognito_user_pool.pool.id
-  cognito_user_pool_domain = aws_cognito_user_pool_domain.pool_domain.domain
-
-  depends_on = [module.eks]
-}
-
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-alpha.5"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0-alpha.8"
 
   cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
@@ -176,12 +136,10 @@ module "thanos" {
 }
 
 module "prometheus-stack" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.1"
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=variable_revamp"
-  # TODO Change source back to the repository
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.6"
 
   cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
@@ -206,11 +164,13 @@ module "prometheus-stack" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v1.0.0-alpha.2"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v1.0.0-alpha.13"
 
   cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
   base_domain      = module.eks.base_domain
+
+  distributed_mode = true
 
   logs_storage = {
     bucket_id    = aws_s3_bucket.loki_logs_storage.id
@@ -222,10 +182,10 @@ module "loki-stack" {
 }
 
 module "grafana" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=v1.0.0-alpha.4"
 
   cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
@@ -237,10 +197,10 @@ module "grafana" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.0-alpha.2"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.0-alpha.6"
 
   cluster_name     = module.eks.cluster_name
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
   base_domain      = module.eks.base_domain
 
   cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
@@ -249,9 +209,17 @@ module "cert-manager" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v1.0.0-alpha.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v1.0.0-alpha.7"
 
-  cluster_name = module.eks.cluster_name
+  cluster_name   = module.eks.cluster_name
+  base_domain    = module.eks.base_domain
+  cluster_issuer = local.cluster_issuer
+
+  admin_enabled            = "true" # honors bootstrap's argocd-initial-admin-secret
+  namespace                = module.argocd_bootstrap.argocd_namespace
+  accounts_pipeline_tokens = module.argocd_bootstrap.argocd_accounts_pipeline_tokens
+  server_secretkey         = module.argocd_bootstrap.argocd_server_secretkey
+
   oidc = {
     name         = "OIDC"
     issuer       = module.oidc.oidc.issuer_url
@@ -266,46 +234,46 @@ module "argocd" {
       "openid", "profile", "email"
     ]
   }
-  argocd = {
-    namespace                = local.argocd_namespace
-    server_secretkey         = module.argocd_bootstrap.argocd_server_secretkey
-    accounts_pipeline_tokens = module.argocd_bootstrap.argocd_accounts_pipeline_tokens
-    server_admin_password    = module.argocd_bootstrap.argocd_server_admin_password
-    domain                   = module.argocd_bootstrap.argocd_domain
-  }
-  base_domain      = module.eks.base_domain
-  cluster_issuer   = local.cluster_issuer
-  bootstrap_values = module.argocd_bootstrap.bootstrap_values
-  #  repositories = {
-  #    "argocd" = {
-  #    url      = local.repo_url
-  #    revision = local.target_revision
-  #  }}
+
+  helm_values = [{
+    argo-cd = {
+      config = {
+        rbac = {
+          "scopes"     = "[groups]"
+          "policy.csv" = <<-EOT
+            g, pipeline, role:admin
+            g, devops-stack-admins, role:admin
+            EOT
+        }
+      }
+    }
+  }]
 
   depends_on = [module.cert-manager, module.prometheus-stack, module.grafana]
 }
 
 module "metrics_server" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.1.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-application.git?ref=v1.2.2"
 
   name             = "metrics-server"
-  argocd_namespace = local.argocd_namespace
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
 
   source_repo            = "https://github.com/kubernetes-sigs/metrics-server.git"
   source_repo_path       = "charts/metrics-server"
-  source_target_revision = "metrics-server-helm-chart-3.8.2"
+  source_target_revision = "metrics-server-helm-chart-3.8.3"
   destination_namespace  = "kube-system"
 
   depends_on = [module.argocd]
 }
 
+/*
 module "helloworld_apps" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=v1.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-applicationset.git?ref=v1.2.3"
 
   depends_on = [module.argocd]
 
   name                   = "helloworld-apps"
-  argocd_namespace       = local.argocd_namespace
+  argocd_namespace       = module.argocd_bootstrap.argocd_namespace
   project_dest_namespace = "*"
   project_source_repo    = "https://github.com/camptocamp/devops-stack-helloworld-templates.git"
 
@@ -373,6 +341,7 @@ module "helloworld_apps" {
     }
   }
 }
+*/
 
 # module "private_apps" {
 #   source = "../devops-stack-module-applicationset"
@@ -380,7 +349,7 @@ module "helloworld_apps" {
 #   depends_on = [module.argocd]
 
 #   name                   = "private-apps"
-#   argocd_namespace       = local.argocd_namespace
+#   argocd_namespace       = module.argocd_bootstrap.argocd_namespace
 #   project_dest_namespace = "*"
 #   project_source_repo    = "https://github.com/lentidas/devops-stack-private-chart.git"
 #   source_credentials_ssh_key = file("${path.module}/id_ed25519_test")

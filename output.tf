@@ -55,3 +55,8 @@ output "grafana_admin_password" {
   value     = module.cluster.grafana_admin_password
 }
 */
+
+output "devops_admins" {
+  sensitive = true
+  value     = module.oidc.devops_stack_admins
+}

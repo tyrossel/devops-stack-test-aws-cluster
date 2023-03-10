@@ -4,22 +4,27 @@ resource "aws_s3_bucket" "loki_logs_storage" {
   force_destroy = true
 
   tags = {
-    Name    = "Loki logs storage"
-    Cluster = module.eks.cluster_name
+    Description = "Loki logs storage"
+    Cluster     = module.eks.cluster_name
   }
 }
 
 module "iam_assumable_role_loki" {
   source                     = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  version                    = "4.0.0"
+  version                    = "~> 5.0"
   create_role                = true
   number_of_role_policy_arns = 1
-  role_name                  = format("loki-s3-role-%s", module.eks.cluster_name)
+  role_name_prefix           = format("loki-s3-%s-", local.cluster_name)
   provider_url               = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
-  role_policy_arns           = [aws_iam_policy.loki_s3_policy.arn]
+  role_policy_arns           = [resource.aws_iam_policy.loki_s3_policy.arn]
 
   # List of ServiceAccounts that have permission to attach to this IAM role
-  oidc_fully_qualified_subjects = ["system:serviceaccount:loki-stack:loki-stack"]
+  oidc_fully_qualified_subjects = [
+    # ServiceAccount for Loki standard 
+    "system:serviceaccount:loki-stack:loki-stack",
+    # ServiceAccounts for Loki distributed
+    "system:serviceaccount:loki-stack:loki",
+  ]
 }
 
 resource "aws_iam_policy" "loki_s3_policy" {
