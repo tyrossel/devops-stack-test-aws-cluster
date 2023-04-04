@@ -24,7 +24,7 @@ module "vpc" {
 }
 
 module "eks" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-eks?ref=v1.0.0-alpha.2"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-eks?ref=v1.0.0"
 
   cluster_name       = local.cluster_name
   kubernetes_version = local.cluster_version
@@ -52,8 +52,7 @@ module "eks" {
 }
 
 module "oidc" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=v1.0.0-alpha.1"
-  source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=fix_and_improvements"
+  source = "git::https://github.com/camptocamp/devops-stack-module-oidc-aws-cognito.git?ref=v1.0.0"
 
   cluster_name = module.eks.cluster_name
   base_domain  = module.eks.base_domain
@@ -85,7 +84,7 @@ provider "helm" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v1.0.0-alpha.7"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=ISDEVOPS-204"
 
   depends_on = [module.eks]
 }
@@ -106,7 +105,7 @@ provider "argocd" {
 }
 
 module "ingress" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0-alpha.8"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
@@ -136,7 +135,7 @@ module "thanos" {
 }
 
 module "prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0-alpha.6"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v1.0.0"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
@@ -164,7 +163,7 @@ module "prometheus-stack" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v1.0.0-alpha.13"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v1.0.0"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
@@ -182,7 +181,7 @@ module "loki-stack" {
 }
 
 module "grafana" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=v1.0.0-alpha.4"
+  source = "git::https://github.com/camptocamp/devops-stack-module-grafana.git?ref=v1.0.0"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
@@ -197,7 +196,7 @@ module "grafana" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.0-alpha.6"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v1.0.1"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
@@ -209,7 +208,7 @@ module "cert-manager" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v1.0.0-alpha.7"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=ISDEVOPS-204"
 
   cluster_name   = module.eks.cluster_name
   base_domain    = module.eks.base_domain
@@ -234,19 +233,6 @@ module "argocd" {
       "openid", "profile", "email"
     ]
   }
-
-  helm_values = [{
-    argo-cd = {
-      configs = {
-        rbac = {
-          "policy.csv" = <<-EOT
-            g, pipeline, role:admin
-            g, devops-stack-admins, role:admin
-            EOT
-        }
-      }
-    }
-  }]
 
   depends_on = [module.cert-manager, module.prometheus-stack, module.grafana]
 }
