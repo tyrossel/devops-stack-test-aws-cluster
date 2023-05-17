@@ -8,15 +8,21 @@ terraform {
   }
 
   required_providers {
-    argocd = {
-      source  = "oboukili/argocd"
+    aws = { # Needed to store the state file in S3
+      source  = "hashicorp/aws"
       version = "~> 4"
     }
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
+      version = "~> 2"
     }
     helm = {
-      source = "hashicorp/helm"
+      source  = "hashicorp/helm"
+      version = "~> 2"
+    }
+    argocd = {
+      source  = "oboukili/argocd"
+      version = "~> 4"
     }
   }
 }
