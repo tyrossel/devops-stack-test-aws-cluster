@@ -1,3 +1,7 @@
+# Providers configuration
+
+# These providers depend on the output of the respectives modules declared below.
+# However, for clarity and ease of maintenance we grouped them all together in this section.
 
 provider "kubernetes" {
   host                   = module.eks.kubernetes_host
@@ -27,6 +31,10 @@ provider "argocd" {
     token                  = module.eks.kubernetes_token
   }
 }
+
+###
+
+# Module declarations and configuration
 
 data "aws_availability_zones" "available" {}
 
@@ -106,13 +114,13 @@ module "argocd_bootstrap" {
 }
 
 module "traefik" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.0.0"
-  source          = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=main"
-  target_revision = "main"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.2.0"
 
   cluster_name     = module.eks.cluster_name
   base_domain      = module.eks.base_domain
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
+
+  enable_service_monitor = local.enable_service_monitor
 
   dependency_ids = {
     argocd = module.argocd_bootstrap.id
@@ -121,15 +129,13 @@ module "traefik" {
 
 
 module "cert-manager" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v2.0.0"
-  source          = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=ISDEVOPS-223-chart-upgrade"
-  target_revision = "ISDEVOPS-223-chart-upgrade"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v3.1.0"
 
   cluster_name     = module.eks.cluster_name
   base_domain      = module.eks.base_domain
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
 
-  enable_service_monitor = false
+  enable_service_monitor = local.enable_service_monitor
 
   cluster_oidc_issuer_url = module.eks.cluster_oidc_issuer_url
 
