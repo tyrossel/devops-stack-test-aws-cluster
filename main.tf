@@ -147,8 +147,6 @@ module "cert-manager" {
 module "loki-stack" {
   source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v2.0.2"
 
-  cluster_name     = module.eks.cluster_name
-  base_domain      = module.eks.base_domain
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
 
   distributed_mode = true
