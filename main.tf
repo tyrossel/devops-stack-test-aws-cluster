@@ -98,11 +98,11 @@ module "oidc" {
   create_pool = true
 
   user_map = {
-    gheleno = {
-      username    = "gheleno"
-      email       = "goncalo.heleno@camptocamp.com"
-      given_name  = "Gonçalo"
-      family_name = "Heleno"
+    trossel = {
+      username    = "trossel"
+      email       = "tanguy.rossel@camptocamp.com"
+      given_name  = "Tanguy"
+      family_name = "Rossel"
     }
   }
 }

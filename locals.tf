@@ -1,6 +1,6 @@
 locals {
-  cluster_version        = "1.25"
-  cluster_name           = "gh-v1-cluster"
+  cluster_version        = "1.27"
+  cluster_name           = "trossel-v1-cluster"
   base_domain            = "is-sandbox.camptocamp.com"
   cluster_issuer         = "letsencrypt-staging"
   enable_service_monitor = false

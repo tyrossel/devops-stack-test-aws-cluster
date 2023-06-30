@@ -2,7 +2,7 @@ terraform {
   backend "s3" {
     encrypt        = true
     bucket         = "camptocamp-aws-is-sandbox-terraform-state"
-    key            = "15f7abf9-abb4-4847-b4dc-af71574ebdf0"
+    key            = "5c996b23-ff33-4e22-b29d-f5fdf3b3208f"
     region         = "eu-west-1"
     dynamodb_table = "camptocamp-aws-is-sandbox-terraform-statelock"
   }
