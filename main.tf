@@ -221,6 +221,62 @@ module "kube-prometheus-stack" {
   }
 }
 
+module "backup" {
+  source           = "git::https://github.com/camptocamp/devops-stack-module-backup.git//eks?ref=grafana"
+  target_revision  = "grafana"
+  cluster_name     = local.cluster_name
+  base_domain      = local.base_domain
+  argocd_namespace = module.argocd_bootstrap.argocd_namespace
+  helm_values = [{
+    velero = {
+      configuration = {
+        features = "EnableCSI"
+        backupStorageLocation = [{
+          name     = "local-minio"
+          default  = true
+          provider = "velero.io/aws"
+          bucket   = aws_s3_bucket.velero_backup_storage.id
+          config = {
+            region = "eu-west-1"
+          }
+        }]
+      }
+      serviceAccount = {
+        server = {
+          annotations = {
+            "eks.amazonaws.com/role-arn" = module.iam_assumable_role_velero.iam_role_arn
+          }
+        }
+      }
+      deployNodeAgent  = true
+      snapshotsEnabled = true
+      defaultVolumesToFsBackup : false
+      schedules = {
+        trossel-backup = {
+          disabled = false
+          schedule = "*/5 * * * *"
+          template = {
+            storageLocation    = "local-minio"
+            includedNamespaces = ["wordpress"]
+          }
+        }
+      }
+      metrics = {
+        enabled = true
+        serviceMonitor = {
+          enabled = true
+        }
+        nodeAgentPodMonitor = {
+          enabled = true
+        }
+      }
+    }
+    grafana_dashboard = {
+      enabled = true
+    }
+  }]
+}
+
 module "argocd" {
   source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v2.1.0"
 
