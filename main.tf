@@ -62,14 +62,13 @@ module "vpc" {
 }
 
 module "eks" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-eks?ref=v1.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-eks?ref=v2.0.1"
 
   cluster_name       = local.cluster_name
   kubernetes_version = local.cluster_version
   base_domain        = local.base_domain
 
-  vpc_id         = module.vpc.vpc_id
-  vpc_cidr_block = module.vpc.vpc_cidr_block
+  vpc_id = module.vpc.vpc_id
 
   private_subnet_ids = module.vpc.private_subnets
   public_subnet_ids  = module.vpc.public_subnets
@@ -108,13 +107,13 @@ module "oidc" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v1.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v2.1.0"
 
   depends_on = [module.eks]
 }
 
 module "traefik" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.2.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//eks?ref=v1.2.3"
 
   cluster_name     = module.eks.cluster_name
   base_domain      = module.eks.base_domain
@@ -129,7 +128,7 @@ module "traefik" {
 
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v3.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//eks?ref=v4.0.3"
 
   cluster_name     = module.eks.cluster_name
   base_domain      = module.eks.base_domain
@@ -188,7 +187,7 @@ module "thanos" {
 }
 
 module "kube-prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v2.3.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v3.2.0"
 
   cluster_name     = module.eks.cluster_name
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
@@ -223,7 +222,7 @@ module "kube-prometheus-stack" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v1.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v2.1.0"
 
   cluster_name   = module.eks.cluster_name
   base_domain    = module.eks.base_domain
