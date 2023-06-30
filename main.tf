@@ -144,48 +144,48 @@ module "cert-manager" {
   }
 }
 
-module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v2.0.2"
+# module "loki-stack" {
+#   source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack//eks?ref=v2.0.2"
+#
+#   argocd_namespace = module.argocd_bootstrap.argocd_namespace
+#
+#   distributed_mode = true
+#
+#   logs_storage = {
+#     bucket_id    = aws_s3_bucket.loki_logs_storage.id
+#     region       = aws_s3_bucket.loki_logs_storage.region
+#     iam_role_arn = module.iam_assumable_role_loki.iam_role_arn
+#   }
+#
+#   dependency_ids = {
+#     argocd = module.argocd_bootstrap.id
+#   }
+# }
 
-  argocd_namespace = module.argocd_bootstrap.argocd_namespace
-
-  distributed_mode = true
-
-  logs_storage = {
-    bucket_id    = aws_s3_bucket.loki_logs_storage.id
-    region       = aws_s3_bucket.loki_logs_storage.region
-    iam_role_arn = module.iam_assumable_role_loki.iam_role_arn
-  }
-
-  dependency_ids = {
-    argocd = module.argocd_bootstrap.id
-  }
-}
-
-module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0"
-
-  cluster_name     = module.eks.cluster_name
-  base_domain      = module.eks.base_domain
-  cluster_issuer   = local.cluster_issuer
-  argocd_namespace = module.argocd_bootstrap.argocd_namespace
-
-  metrics_storage = {
-    bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
-    region       = aws_s3_bucket.thanos_metrics_storage.region
-    iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
-  }
-  thanos = {
-    oidc = module.oidc.oidc
-  }
-
-  dependency_ids = {
-    argocd       = module.argocd_bootstrap.id
-    traefik      = module.traefik.id
-    cert-manager = module.cert-manager.id
-    oidc         = module.oidc.id
-  }
-}
+# module "thanos" {
+#   source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//eks?ref=v1.0.0"
+#
+#   cluster_name     = module.eks.cluster_name
+#   base_domain      = module.eks.base_domain
+#   cluster_issuer   = local.cluster_issuer
+#   argocd_namespace = module.argocd_bootstrap.argocd_namespace
+#
+#   metrics_storage = {
+#     bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
+#     region       = aws_s3_bucket.thanos_metrics_storage.region
+#     iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
+#   }
+#   thanos = {
+#     oidc = module.oidc.oidc
+#   }
+#
+#   dependency_ids = {
+#     argocd       = module.argocd_bootstrap.id
+#     traefik      = module.traefik.id
+#     cert-manager = module.cert-manager.id
+#     oidc         = module.oidc.id
+#   }
+# }
 
 module "kube-prometheus-stack" {
   source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//eks?ref=v2.3.0"
@@ -195,11 +195,11 @@ module "kube-prometheus-stack" {
   base_domain      = module.eks.base_domain
   cluster_issuer   = local.cluster_issuer
 
-  metrics_storage = {
-    bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
-    region       = aws_s3_bucket.thanos_metrics_storage.region
-    iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
-  }
+  # metrics_storage = {
+  #   bucket_id    = aws_s3_bucket.thanos_metrics_storage.id
+  #   region       = aws_s3_bucket.thanos_metrics_storage.region
+  #   iam_role_arn = module.iam_assumable_role_thanos.iam_role_arn
+  # }
 
   prometheus = {
     oidc = module.oidc.oidc
@@ -218,7 +218,7 @@ module "kube-prometheus-stack" {
     traefik      = module.traefik.id
     cert-manager = module.cert-manager.id
     oidc         = module.oidc.id
-    thanos       = module.thanos.id
+    # thanos       = module.thanos.id
   }
 }
 
