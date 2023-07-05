@@ -230,7 +230,8 @@ module "backup" {
   helm_values = [{
     velero = {
       configuration = {
-        features = "EnableCSI"
+        uploaderType = "kopia"
+        # uploaderType = "restic"
         backupStorageLocation = [{
           name     = "local-minio"
           default  = true
@@ -240,6 +241,14 @@ module "backup" {
             region = "eu-west-1"
           }
         }]
+        volumeSnapshotLocation = [{
+          name    = "aws"
+          provider = "velero.io/aws"
+          config = {
+            region = "eu-west-1"
+          }
+
+        }]
       }
       serviceAccount = {
         server = {
@@ -248,9 +257,9 @@ module "backup" {
           }
         }
       }
-      deployNodeAgent  = true
-      snapshotsEnabled = true
-      defaultVolumesToFsBackup : false
+      deployNodeAgent          = true
+      snapshotsEnabled         = true
+      defaultVolumesToFsBackup = false
       schedules = {
         trossel-backup = {
           disabled = false
@@ -258,6 +267,7 @@ module "backup" {
           template = {
             storageLocation    = "local-minio"
             includedNamespaces = ["wordpress"]
+            includedResources  = ["persistentVolumes", "persistentVolumeClaims"]
           }
         }
       }
