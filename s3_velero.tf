@@ -46,4 +46,17 @@ data "aws_iam_policy_document" "velero_s3_policy" {
 
     effect = "Allow"
   }
+
+  statement {
+    actions = [
+      "ec2:DescribeVolumes",
+      "ec2:DescribeSnapshots",
+      "ec2:CreateTags",
+      "ec2:CreateVolume",
+      "ec2:CreateSnapshot",
+      "ec2:DeleteSnapshot"
+    ]
+	resources = ["*"]
+	effect = "Allow"
+  }
 }
