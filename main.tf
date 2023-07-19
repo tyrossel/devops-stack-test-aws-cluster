@@ -222,69 +222,47 @@ module "kube-prometheus-stack" {
 }
 
 module "backup" {
-  source           = "git::https://github.com/camptocamp/devops-stack-module-backup.git//eks?ref=grafana"
+  # source           = "git::https://github.com/camptocamp/devops-stack-module-backup.git//eks?ref=grafana"
+  source           = "../module-backup/eks"
   target_revision  = "grafana"
   cluster_name     = local.cluster_name
   base_domain      = local.base_domain
   argocd_namespace = module.argocd_bootstrap.argocd_namespace
-  helm_values = [{
-    velero = {
-      configuration = {
-        uploaderType = "kopia"
-        # uploaderType = "restic"
-        backupStorageLocation = [{
-          name     = "local-minio"
-          default  = true
-          provider = "velero.io/aws"
-          bucket   = aws_s3_bucket.velero_backup_storage.id
-          config = {
-            region = "eu-west-1"
-          }
-        }]
-        volumeSnapshotLocation = [{
-          name    = "aws"
-          provider = "velero.io/aws"
-          config = {
-            region = "eu-west-1"
-          }
 
-        }]
+  enable_monitoring_dashboard = true
+
+  backup_schedules = {
+    snapshot-backup = {
+      disabled = false
+      schedule = "* 4 * * *"
+      template = {
+        # storageLocation    = "backup-bucket"
+        includedNamespaces = ["wordpress"]
+        includedResources  = ["persistentVolumes", "persistentVolumeClaims"]
       }
-      serviceAccount = {
-        server = {
-          annotations = {
-            "eks.amazonaws.com/role-arn" = module.iam_assumable_role_velero.iam_role_arn
-          }
-        }
-      }
-      deployNodeAgent          = true
-      snapshotsEnabled         = true
-      defaultVolumesToFsBackup = false
-      schedules = {
-        trossel-backup = {
-          disabled = false
-          schedule = "*/5 * * * *"
-          template = {
-            storageLocation    = "local-minio"
-            includedNamespaces = ["wordpress"]
-            includedResources  = ["persistentVolumes", "persistentVolumeClaims"]
-          }
-        }
-      }
-      metrics = {
-        enabled = true
-        serviceMonitor = {
-          enabled = true
-        }
-        nodeAgentPodMonitor = {
-          enabled = true
-        }
+    },
+    restic-backup = {
+      disabled = false
+      schedule = "* 4 * * *"
+      template = {
+        # storageLocation    = "backup-bucket"
+        includedNamespaces = ["wordpress", "velero"]
+        includedResources  = ["persistentVolumes", "persistentVolumeClaims", "pods"]
       }
     }
-    grafana_dashboard = {
-      enabled = true
-    }
-  }]
+  }
+
+  default_backup_storage = {
+    bucket_id    = aws_s3_bucket.velero_backup_storage.id
+    region       = aws_s3_bucket.velero_backup_storage.region
+    iam_role_arn = module.iam_assumable_role_velero.iam_role_arn
+  }
+
+
+  dependency_ids = {
+    kube-prometheus-stack = module.kube-prometheus-stack.id,
+    argocd                = module.argocd_bootstrap.id # TODO Can cause issues on the first cluster bootstrap. If it's the case, deploy after the last argocd.
+  }
 }
 
 module "argocd" {
