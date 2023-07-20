@@ -243,7 +243,7 @@ module "backup" {
     },
     restic-backup = {
       disabled = false
-      schedule = "* 4 * * *"
+      schedule = "* * * * 1"
       template = {
         # storageLocation    = "backup-bucket"
         includedNamespaces = ["wordpress", "velero"]
