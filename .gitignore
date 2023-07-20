@@ -98,3 +98,8 @@ cmake-build-*
 ### Visual Studio Folders ###
 .vs
 .vscode
+
+### Vim
+Session.vim
+
+setup_aliases.sh
